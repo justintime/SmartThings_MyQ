@@ -1,7 +1,7 @@
 /**
  *  MyQ Lite
  *
- *  Copyright 2016 Jason Mok/Brian Beaird/Barry Burke
+ *  Copyright 2015 Jason Mok/Brian Beaird
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,13 +12,13 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- *  Last Updated : 1/12/2017
+ *  Last Updated : 06/14/2016
  *
  */
 definition(
 	name: "MyQ Lite",
 	namespace: "brbeaird",
-	author: "Jason Mok/Brian Beaird/Barry Burke",
+	author: "Jason Mok/Brian Beaird",
 	description: "Integrate MyQ with Smartthings",
 	category: "SmartThings Labs",
 	iconUrl:   "http://smartthings.copyninja.net/icons/MyQ@1x.png",
@@ -50,41 +50,28 @@ def prefLogIn() {
 }
 
 def prefListDevices() {
-	getSelectedDevices("lights")
-    if (forceLogin()) {
+	if (forceLogin()) {
 		def doorList = getDoorList()		
-		if ((state.doorList) || (state.lightList)){
-        	if ((state.doorList)) {
-                return dynamicPage(name: "prefListDevices",  title: "Devices", nextPage:"prefSensor1", install:false, uninstall:true) {
-                    if (state.doorList) {
-                        section("Select which garage door/gate to use"){
-                            input(name: "doors", type: "enum", required:false, multiple:true, metadata:[values:state.doorList])
-                        }
-                    } 
-                    if (state.lightList) {
-                        section("Select which lights to use"){
-                            input(name: "lights", type: "enum", required:false, multiple:true, metadata:[values:state.lightList])
-                        }
-                    } 
-                }
-            } 
-        
-        
-        
-        }else {
+		if ((doorList)) {
+			return dynamicPage(name: "prefListDevices",  title: "Devices", nextPage:"prefSensor1", install:false, uninstall:true) {
+				if (doorList) {
+					section("Select which garage door/gate to use"){
+						input(name: "doors", type: "enum", required:false, multiple:true, metadata:[values:doorList])
+					}
+				} 
+			}
+		} else {
 			def devList = getDeviceList()
 			return dynamicPage(name: "prefListDevices",  title: "Error!", install:false, uninstall:true) {
 				section(""){
 					paragraph "Could not find any supported device(s). Please report to author about these devices: " +  devList
 				}
 			}
-		}
-        
-          
+		}  
 	} else {
 		return dynamicPage(name: "prefListDevices",  title: "Error!", install:false, uninstall:true) {
 			section(""){
-				paragraph "The username or password you entered is incorrect. Try again. "
+				paragraph "The username or password you entered is incorrect. Try again. " 
 			}
 		}  
 	}
@@ -102,30 +89,22 @@ def prefSensor1() {
     //Determine if we have multiple doors and need to send to another page
     if (doors instanceof String){ //simulator seems to just make a single door a string. For that reason we have this weird check.
     	log.debug "Single door detected (string)."
-        titleText = "Select Sensors for Door 1 (" + state.data[doors].name + ")"
+        titleText = "Select Contact Sensor for Door 1 (" + state.data[doors].name + ")"
     }
     else if (doors.size() == 1){
     	log.debug "Single door detected (array)."
-        titleText = "Select Sensors for Door 1 (" + state.data[doors[0]].name + ")"
+        titleText = "Select Contact Sensor for Door 1 (" + state.data[doors[0]].name + ")"
     }
     else{
     	log.debug "Multiple doors detected."
         nextPage = "prefSensor2"
-        titleText = "OPTIONAL: Select Sensors for Door 1 (" + state.data[doors[0]].name + ")"
+        titleText = "Select Contact Sensor for Door 1 (" + state.data[doors[0]].name + ")"
         showInstall = false;
     }    
     
-    return dynamicPage(name: "prefSensor1",  title: "Optional Sensors and Push Buttons", nextPage:nextPage, install:showInstall, uninstall:true) {        
+    return dynamicPage(name: "prefSensor1",  title: "Sensors", nextPage:nextPage, install:showInstall, uninstall:true) {        
         section(titleText){			
-			paragraph "Optional: If you have sensors on this door, select them below. A sensor allows the device type to know whether the door is open or closed, which helps the device function " + 
-            	"as a switch you can turn on (to open) and off (to close)."                
-            input(name: "door1Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: false, multiple: false)
-			input(name: "door1Acceleration", title: "Acceleration Sensor", type: "capability.accelerationSensor", required: false, multiple: false)
-		}        
-        section("Create separate on/off push buttons?"){			
-			paragraph "Choose the option below to have separate additional On and Off push button devices created. This is recommened if you have no sensors but still want a way to open/close the " +
-            "garage from SmartTiles and other interfaces like Google Home that can't function with the built-in open/close capability. See wiki for more details."           
-            input "prefDoor1PushButtons", "bool", required: false, title: "Create on/off push buttons?"
+			input(name: "door1Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: "true", multiple: "false")			
 		}
     }
 }
@@ -133,77 +112,60 @@ def prefSensor1() {
 def prefSensor2() {	   
     def nextPage = ""
     def showInstall = true
-    def titleText = "Sensors for Door 2 (" + state.data[doors[1]].name + ")"
+    def titleText = "Contact Sensor for Door 2 (" + state.data[doors[1]].name + ")"
      
     if (doors.size() > 2){
     	nextPage = "prefSensor3"
         showInstall = false;
     }
     
-    return dynamicPage(name: "prefSensor2",  title: "Optional Sensors and Push Buttons", nextPage:nextPage, install:showInstall, uninstall:true) {
+    return dynamicPage(name: "prefSensor2",  title: "Sensors", nextPage:nextPage, install:showInstall, uninstall:true) {
         section(titleText){			
-			input(name: "door2Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: false, multiple: false)
-			input(name: "door2Acceleration", title: "Acceleration Sensor", type: "capability.accelerationSensor", required: false, multiple: false)
-		}
-        section("Create separate on/off push buttons?"){
-			paragraph "Choose the option below to have extra on and off push button devices created. This is recommened if you have no sensors but still want a way to open/close the garage from SmartTiles."           
-            input "prefDoor2PushButtons", "bool", required: false, title: "Create on/off push buttons?"
+			input(name: "door2Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: "true", multiple: "false")			
 		}
     }
 }
 
-def prefSensor3() {
+def prefSensor3() {	   
     def nextPage = ""
     def showInstall = true
-    def titleText = "Sensors for Door 3 (" + state.data[doors[2]].name + ")"
+    def titleText = "Contact Sensor for Door 3 (" + state.data[doors[2]].name + ")"
      
     if (doors.size() > 3){
     	nextPage = "prefSensor4"
         showInstall = false;
     }
     
-    return dynamicPage(name: "prefSensor3",  title: "Optional Sensors and Push Buttons", nextPage:nextPage, install:showInstall, uninstall:true) {
+    return dynamicPage(name: "prefSensor3",  title: "Sensors", nextPage:nextPage, install:showInstall, uninstall:true) {
         section(titleText){			
-			input(name: "door3Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: false, multiple: false)
-			input(name: "door3Acceleration", title: "Acceleration Sensor", type: "capability.accelerationSensor", required: false, multiple: false)
-		}
-        section("Create separate on/off push buttons?"){			
-			paragraph "Choose the option below to have extra on and off push button devices created. This is recommened if you have no sensors but still want a way to open/close the garage from SmartTiles."           
-            input "prefDoor3PushButtons", "bool", required: false, title: "Create on/off push buttons?"
+			input(name: "door3Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: "true", multiple: "false")			
 		}
     }
 }
 
 def prefSensor4() {	   
 	def titleText = "Contact Sensor for Door 4 (" + state.data[doors[3]].name + ")"
-    return dynamicPage(name: "prefSensor4",  title: "Optional Sensors and Push Buttons", install:true, uninstall:true) {
+    return dynamicPage(name: "prefSensor4",  title: "Sensors", install:true, uninstall:true) {
         section(titleText){			
-			input(name: "door4Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: "false", multiple: "false")
-			input(name: "door4Acceleration", title: "Acceleration Sensor", type: "capability.accelerationSensor", required: false, multiple: false)
-		}
-        section("Create separate on/off push buttons?"){			
-			paragraph "Choose the option below to have extra on and off push button devices created. This is recommened if you have no sensors but still want a way to open/close the garage from SmartTiles."           
-            input "prefDoor4PushButtons", "bool", required: false, title: "Create on/off push buttons?"
+			input(name: "door4Sensor", title: "Contact Sensor", type: "capability.contactSensor", required: "true", multiple: "false")			
 		}
     }
 }
 
+
+
 /* Initialization */
-def installed() { 
-	//initialize() 
-}
+def installed() { initialize() }
 
 def updated() { 
-	log.debug "Updated..."
-    unsubscribe()
+	unsubscribe()
 	initialize()
 }
 
 def uninstalled() {}	
 
 def initialize() {    
-	log.debug "Initializing..."
-    login()
+	login()
     state.sensorMap = [:]
     
     // Get initial device status in state.data
@@ -212,56 +174,24 @@ def initialize() {
     
 	// Create selected devices
 	def doorsList = getDoorList()
-	def lightsList = state.lightList    
-    
-    def firstDoor = doors[0]        
-    //Handle single door (sometimes it's just a dumb string thanks to the simulator)
-    if (doors instanceof String)
-    firstDoor = doors   
-    
-	//Create door devices
-    createChilDevices(firstDoor, door1Sensor, doorsList[firstDoor], prefDoor1PushButtons)
-    if (doors[1]) createChilDevices(doors[1], door2Sensor, doorsList[doors[1]], prefDoor2PushButtons)
-    if (doors[2]) createChilDevices(doors[2], door3Sensor, doorsList[doors[2]], prefDoor3PushButtons)
-    if (doors[3]) createChilDevices(doors[3], door4Sensor, doorsList[doors[3]], prefDoor4PushButtons)    
-    
-    //Create light devices
-    def selectedLights = getSelectedDevices("lights")    
-    selectedLights.each {    
-    	log.debug "Checking for existing light: " + it
-    	if (!getChildDevice(it)) {
-        	log.debug "Creating child light device: " + it
-        	addChildDevice("brbeaird", "MyQ Light Controller", it, null, ["name": lightsList[it]])
-        }
-        else{
-        	log.debug "Light device already exists: " + it
-        }
-        
-    }
-    
-    // Remove unselected devices
-    def selectedDevices = [] + getSelectedDevices("doors") + getSelectedDevices("lights")
-    getChildDevices().each{
-        //Modify DNI string for the extra pushbuttons to make sure they don't get deleted unintentionally
-        def DNI = it?.deviceNetworkId
-        DNI = DNI.replace(" Opener", "")
-        DNI = DNI.replace(" Closer", "")        
+	//def lightsList = getLightList()
+	def selectedDevices = [] + getSelectedDevices("doors")
+  
+	selectedDevices.each { 
+    	log.debug "Creating child device: " + it
+		if (!getChildDevice(it)) {
+			if (it.contains("GarageDoorOpener")) { addChildDevice("brbeaird", "MyQ Garage Door Opener", it, null, ["name": "MyQLite: " + doorsList[it]]) }			
+		} 
+	}
 
-        if (!(DNI in selectedDevices)){
-            log.debug "found device to delete: " + it
-            try{
-                	deleteChildDevice(it.deviceNetworkId)
-            } catch (e){
-                	sendPush("Warning: unable to delete door or button - " + it + "- you'll need to manually remove it.")
-                    log.debug "Error trying to delete device " + it + " - " + e
-                    log.debug "Device is likely in use in a Routine, or SmartApp (make sure and check SmarTiles!)."
-            }
-        }
-    }
+	// Remove unselected devices
+	def deleteDevices = (selectedDevices) ? (getChildDevices().findAll { !selectedDevices.contains(it.deviceNetworkId) }) : getAllChildDevices()
+	deleteDevices.each { deleteChildDevice(it.deviceNetworkId) }    
+    
     
     //Create subscriptions
     if (door1Sensor)
-        subscribe(door1Sensor, "contact", sensorHandler)
+        subscribe(door1Sensor, "contact", sensorHandler)    
     if (door2Sensor)    	
         subscribe(door2Sensor, "contact", sensorHandler)
     if (door3Sensor)        
@@ -269,90 +199,17 @@ def initialize() {
     if (door4Sensor)    	
         subscribe(door4Sensor, "contact", sensorHandler)
         
-    if (door1Acceleration)
-        subscribe(door1Acceleration, "acceleration", sensorHandler)    
-    if (door2Acceleration)    	
-        subscribe(door2Acceleration, "acceleration", sensorHandler)
-    if (door3Acceleration)        
-        subscribe(door3Acceleration, "acceleration", sensorHandler)        
-    if (door4Acceleration)    	
-        subscribe(door4Acceleration, "acceleration", sensorHandler)
-        
+	//Subscribe to mode changes and sunrise/sunset to help keep doors in sync
+	subscribe(location, "sunrise", syncDoorsWithSensors)
+	subscribe(location, "sunset", syncDoorsWithSensors)
+	subscribe(location, "mode", syncDoorsWithSensors)
+	subscribe(location, "sunriseTime", syncDoorsWithSensors)
+	subscribe(location, "sunsetTime", syncDoorsWithSensors)
+    
     //Set initial values
-    if (door1Sensor)
-    	syncDoorsWithSensors()   
-}
+    syncDoorsWithSensors()    
 
-def createChilDevices(door, sensor, doorName, prefPushButtons){
-	if (door){
-        //Has door's child device already been created?
-        def existingDev = getChildDevice(door)
-        def existingType = existingDev?.typeName
-        
-        if (existingDev){        
-        	log.debug "Child already exists for " + doorName + ". Sensor name is: " + sensor
-            if ((!sensor) && existingType == "MyQ Garage Door Opener"){
-            	log.debug "Type needs updating to non-sensor version"
-                existingDev.deviceType = "MyQ Garage Door Opener-NoSensor"
-            }
-            
-            if (sensor && existingType == "MyQ Garage Door Opener-NoSensor"){
-            	log.debug "Type needs updating to sensor version"
-                existingDev.deviceType = "MyQ Garage Door Opener"
-            }            
-        }
-        else{
-            log.debug "Creating child door device " + door
-            if (sensor){
-                addChildDevice("brbeaird", "MyQ Garage Door Opener", door, null, ["name": doorName]) 
-            }
-            else{
-                addChildDevice("brbeaird", "MyQ Garage Door Opener-NoSensor", door, null, ["name": doorName]) 
-            }
-        }
-        
-        //Create push button devices
-        if (prefPushButtons){
-        	def existingOpenButtonDev = getChildDevice(door + " Opener")
-            def existingCloseButtonDev = getChildDevice(door + " Closer")
-            if (!existingOpenButtonDev){
-                def openButton = addChildDevice("smartthings", "Momentary Button Tile", door + " Opener", null, [name: doorName + " Opener", label: doorName + " Opener"])
-                subscribe(openButton, "momentary.pushed", doorButtonOpenHandler)                
-            }
-            else{
-            	subscribe(existingOpenButtonDev, "momentary.pushed", doorButtonOpenHandler)                
-            }
-            
-            if (!existingCloseButtonDev){                
-                def closeButton = addChildDevice("smartthings", "Momentary Button Tile", door + " Closer", null, [name: doorName + " Closer", label: doorName + " Closer"])
-                subscribe(closeButton, "momentary.pushed", doorButtonCloseHandler)
-            }
-            else{
-                subscribe(existingCloseButtonDev, "momentary.pushed", doorButtonCloseHandler)                
-            }
-        }
-        
-        //Cleanup defunct push button devices if no longer wanted
-        else{
-        	def pushButtonIDs = [door + " Opener", door + " Closer"]
-            log.debug "ID's to look for: " + pushButtonIDs
-            def devsToDelete = getChildDevices().findAll { pushButtonIDs.contains(it.deviceNetworkId)}
-            log.debug "button devices to delete: " + devsToDelete
-			devsToDelete.each{
-            	log.debug "deleting button: " + it
-                try{
-                	deleteChildDevice(it.deviceNetworkId)
-                } catch (e){
-                	sendPush("Warning: unable to delete virtual on/off push button - you'll need to manually remove it.")
-                    log.debug "Error trying to delete button " + it + " - " + e
-                    log.debug "Button  is likely in use in a Routine, or SmartApp (make sure and check SmarTiles!)."
-                }
-            	
-            }
-        } 	
-    }
 }
-
 
 def syncDoorsWithSensors(child){	
     def firstDoor = doors[0]
@@ -361,72 +218,31 @@ def syncDoorsWithSensors(child){
     if (doors instanceof String)
     firstDoor = doors
     
-    def doorDNI = null
-    if (child) {								// refresh only the requesting door (makes things a bit more efficient if you have more than 1 door
-    	doorDNI = child.device.deviceNetworkId
-        switch (doorDNI) {
-        	case firstDoor:
-            	updateDoorStatus(firstDoor, door1Sensor, door1Acceleration, door1ThreeAxis, child)
-                break
-            case doors[1]:
-            	updateDoorStatus(doors[1], door2Sensor, door2Acceleration, door2ThreeAxis, child)
-                break
-            case doors[2]:
-            	updateDoorStatus(doors[2], door3Sensor, door3Acceleration, door3ThreeAxis, child)
-                break
-            case doors[3]:
-            	updateDoorStatus(doors[3], door4Sensor, door4Acceleration, door4ThreeAxis, child)
-     	}
-    } else {           					// refresh ALL the doors
-		if (firstDoor) updateDoorStatus(firstDoor, door1Sensor, door1Acceleration, door1ThreeAxis, null)
-		if (doors[1]) updateDoorStatus(doors[1], door2Sensor, door2Acceleration, door2ThreeAxis, null)
-		if (doors[2]) updateDoorStatus(doors[2], door3Sensor, door3Acceleration, door3ThreeAxis, null)
-		if (doors[3]) updateDoorStatus(doors[3], door4Sensor, door4Acceleration, door4ThreeAxis, null)
-    }
+    if (door1Sensor)
+    	updateDoorStatus(firstDoor, door1Sensor, child)
+    if (door2Sensor)
+    	updateDoorStatus(doors[1], door2Sensor, child)
+    if (door3Sensor)
+    	updateDoorStatus(doors[2], door3Sensor, child)
+    if (door4Sensor)
+        updateDoorStatus(doors[3], door4Sensor, child)
 }
 
-def updateDoorStatus(doorDNI, sensor, acceleration, threeAxis, child){
+
+def updateDoorStatus(doorDNI, sensor, child){
 	
     //Get door to update and set the new value
     def doorToUpdate = getChildDevice(doorDNI)
     def doorName = state.data[doorDNI].name
-    
-    def value = "unknown"
-    def moving = "unknown"
-    def door = doorToUpdate.latestValue("door")
-    
-    if (acceleration) moving = acceleration.latestValue("acceleration")
-    if (sensor) value = sensor.latestValue("contact")
-
-    if (moving == "active") {
-    	if (value == "open") {			
-        	if (door != "opening") value = "closing" else value = "opening"  // if door is "open" or "waiting" change to "closing", else it must be "opening"
-    	} else if (value == "closed") { 
-        	if (door != "closing") 	value = "opening" else value = "closed"
-    	}
-    } else if (moving == "inactive") {
-    	if (door == "closing") {
-    		if (value == "open") { 	// just stopped but door is still open
-    			value = "stopped"
-        	}
-        }
-    }
-    	
+    def value = sensor.currentcontact
     doorToUpdate.updateDeviceStatus(value)
-    doorToUpdate.updateDeviceSensor("${sensor} is ${sensor?.currentContact}")
-    
+    doorToUpdate.updateDeviceSensor(sensor)
     log.debug "Door: " + doorName + ": Updating with status - " + value + " -  from sensor " + sensor
     
     //Write to child log if this was initiated from one of the doors    
     if (child)
     	child.log("Door: " + doorName + ": Updating with status - " + value + " -  from sensor " + sensor)
- 
-     if (acceleration) {
-     	doorToUpdate.updateDeviceMoving("${acceleration} is ${moving}")
-        log.debug "Door: " + doorName + ": Updating with status - " + moving + " - from sensor " + acceleration
-        if (child)
-        	child.log("Door: " + doorName + ": Updating with status - " + moving + " - from sensor " + acceleration)
-     }
+    
     
     //Get latest activity timestamp for the sensor (data saved for up to a week)
     def eventsSinceYesterday = sensor.eventsSince(new Date() - 7)    
@@ -443,6 +259,7 @@ def updateDoorStatus(doorDNI, sensor, acceleration, threeAxis, child){
     //Write to child log if this was initiated from one of the doors
     if (child)
     	child.log(timeStampLogText)
+	
 }
 
 def refresh(child){	
@@ -453,60 +270,9 @@ def refresh(child){
 }
 
 def sensorHandler(evt) {    
-    log.debug "Sensor change detected: Event name  " + evt.name + " value: " + evt.value   + " deviceID: " + evt.deviceId    
-    
-	//If we're seeing vibration sensor values, ignore them if it's been more than 30 seconds after a command was sent.
-    // This keeps us from seeing phantom entries from overly-sensitive sensors
-	if (evt.value == "active" || evt.value == "inactive"){
-		if (state.lastCommandSent == null || state.lastCommandSent > now()-30000){
-    		return 0;
-    	}
-	}   
-    
-    switch (evt.deviceId) {
-    	case door1Sensor.id:
-        case door1Acceleration?.id:
-            def firstDoor = doors[0]
-			if (doors instanceof String) firstDoor = doors
-        	updateDoorStatus(firstDoor, door1Sensor, door1Acceleration, door1ThreeAxis, null)
-            break
-    	case door2Sensor?.id:
-        case door2Acceleration?.id:
-        	updateDoorStatus(doors[1], door2Sensor, door2Acceleration, door2ThreeAxis, null)
-            break    	
-        case door3Sensor?.id:
-        case door3Acceleration?.id:
-        	updateDoorStatus(doors[2], door3Sensor, door3Acceleration, door3ThreeAxis, null)
-            break        
-    	case door4Sensor?.id:
-        case door4Acceleration?.id:
-        	updateDoorStatus(doors[3], door4Sensor, door4Acceleration, door4ThreeAxis, null)
-            break
-        default:
-			syncDoorsWithSensors()
-    }
+    log.debug "Sensor change detected: Event name  " + evt.name + " value: " + evt.value    
+    syncDoorsWithSensors()    
 }
-
-def doorButtonOpenHandler(evt) {
-    log.debug "Door open button push detected: Event name  " + evt.name + " value: " + evt.value   + " deviceID: " + evt.deviceId + " DNI: " + evt.getDevice().deviceNetworkId
-    def doorDeviceDNI = evt.getDevice().deviceNetworkId
-    doorDeviceDNI = doorDeviceDNI.replace(" Opener", "")
-    def doorDevice = getChildDevice(doorDeviceDNI)
-    log.debug "Opening door."
-    doorDevice.openPrep()
-    sendCommand(doorDevice, "desireddoorstate", 1) 
-}
-
-def doorButtonCloseHandler(evt) {    
-    log.debug "Door close button push detected: Event name  " + evt.name + " value: " + evt.value   + " deviceID: " + evt.deviceId + " DNI: " + evt.getDevice().deviceNetworkId
-    def doorDeviceDNI = evt.getDevice().deviceNetworkId
-    doorDeviceDNI = doorDeviceDNI.replace(" Closer", "")
-	def doorDevice = getChildDevice(doorDeviceDNI)
-    log.debug "Closing door."
-    doorDevice.closePrep()
-    sendCommand(doorDevice, "desireddoorstate", 0) 
-}
-
 
 def getSelectedDevices( settingsName ) { 
 	def selectedDevices = [] 
@@ -517,7 +283,7 @@ def getSelectedDevices( settingsName ) {
 /* Access Management */
 private forceLogin() {
 	//Reset token and expiry
-	state.session = [ brandID: 0, brandName: settings.brand, securityToken: null, expiration: 0 ]
+	state.session = [ securityToken: null, expiration: 0 ]
 	state.polling = [ last: 0, rescheduler: now() ]
 	state.data = [:]
 	return doLogin()
@@ -526,12 +292,11 @@ private forceLogin() {
 private login() { return (!(state.session.expiration > now())) ? doLogin() : true }
 
 private doLogin() { 
-	apiGet("/api/user/validate", [username: settings.username, password: settings.password] ) { response ->
-		log.debug "got login response: " + response
+	apiPost("/api/v4/user/validate", [username: settings.username, password: settings.password] ) { response ->
+        log.debug "got login response data: ${response.data}"
+
         if (response.status == 200) {
 			if (response.data.SecurityToken != null) {
-				state.session.brandID = response.data.BrandId
-				state.session.brandName = response.data.BrandName
 				state.session.securityToken = response.data.SecurityToken
 				state.session.expiration = now() + 150000
 				return true
@@ -546,10 +311,7 @@ private doLogin() {
 
 // Listing all the garage doors you have in MyQ
 private getDoorList() { 	    
-	state.doorList = [:]
-    state.lightList = [:]
-    
-    def deviceList = [:]
+	def deviceList = [:]
 	apiGet("/api/v4/userdevicedetails/get", []) { response ->
 		if (response.status == 200) {
         //log.debug "response data: " + response.data.Devices
@@ -571,71 +333,15 @@ private getDoorList() {
                         	
 						if (it.AttributeDisplayName=="doorstate") { 
                         	doorState = it.Value
-                            updatedTime = it.UpdatedTime
-						}
-					}
-                    
-                    
-                    //Sometimes MyQ has duplicates. Check and see if we've seen this door before
-                        def doorToRemove = ""
-                        state.data.each { doorDNI, door ->
-                        	if (door.name == description){
-                            	log.debug "Duplicate door detected. Checking to see if this one is newer..."
-                                
-                                //If this instance is newer than the duplicate, pull the older one back out of the array
-                                if (door.lastAction < updatedTime){	
-                                	log.debug "Yep, this one is newer."
-                                    doorToRemove = door 
-                                }
-                                
-                                //If this door is the older one, clear out the description so it will be ignored
-                                else{
-                                	log.debug "Nope, this one is older. Stick with what we've got."
-                                    description = ""
-                                }
-                            }
-                        }                        
-                        if (doorToRemove){
-                        	log.debug "Removing older duplicate."
-                            state.data.remove(door)
-                            state.doorList.remove(door)
-                        }                    
-                    
-                    //Ignore any doors with blank descriptions
-                    if (description != ''){
-                        log.debug "Storing door info: " + description + "type: " + device.MyQDeviceTypeId + " status: " + doorState +  " type: " + device.MyQDeviceTypeName
-                        deviceList[dni] = description
-                        state.doorList[dni] = description
-                        state.data[dni] = [ status: doorState, lastAction: updatedTime, name: description, type: device.MyQDeviceTypeId ]
-                    }
-				}
-                
-                //Lights!
-                if (device.MyQDeviceTypeId == 3) {
-					log.debug "Found light: " + device.MyQDeviceId
-                    def dni = [ app.id, "LightController", device.MyQDeviceId ].join('|')
-					def description = ''
-                    def lightState = ''
-                    def updatedTime = ''
-                    device.Attributes.each { 
-						
-                        if (it.AttributeDisplayName=="desc")	//deviceList[dni] = it.Value                        	
-                        {
-                        	description = it.Value
-                        }
-                        	
-						if (it.AttributeDisplayName=="lightstate") { 
-                        	lightState = it.Value
                             updatedTime = it.UpdatedTime							
 						}
 					}
                     
-                    //Ignore any lights with blank descriptions
+                    //Ignore any doors with blank descriptions
                     if (description != ''){
-                        log.debug "Storing light info: " + description + "type: " + device.MyQDeviceTypeId + " status: " + doorState +  " type: " + device.MyQDeviceTypeName
+                        log.debug "adding door: " + description + "type: " + device.MyQDeviceTypeId + " status: " + doorState
                         deviceList[dni] = description
-                        state.lightList[dni] = description
-                        state.data[dni] = [ status: lightState, lastAction: updatedTime, name: description, type: device.MyQDeviceTypeId ]
+                        state.data[dni] = [ status: doorState, lastAction: updatedTime, name: description ]
                     }
 				}
 			}
@@ -683,12 +389,25 @@ private getApiURL() {
 
 private getApiAppID() {
 	if (settings.brand == "Craftsman") {
-		return "QH5AzY8MurrilYsbcG1f6eMTffMCm3cIEyZaSdK/TD/8SvlKAWUAmodIqa5VqVAs"
+		return "eU97d99kMG4t3STJZO/Mu2wt69yTQwM0WXZA5oZ74/ascQ2xQrLD/yjeVhEQccBZ"
 	} else {
 		return "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu"
 	}
 }
 	
+// HTTP POST call
+private apiPost(apiPath, apiBody = [], callback = {}) {	
+	if (state.session.securityToken) { apiBody = apiBody + [SecurityToken: state.session.securityToken ] }
+       
+	try {
+		httpPost([ uri: getApiURL(), path: apiPath, contentType: "application/json; charset=utf-8", body: apiBody, 
+        	headers: [MyQApplicationId: getApiAppID()], ]) { response -> callback(response) }
+	}	catch (SocketException e)	{
+		//sendAlert("API Error: $e")
+        log.debug "API Error: $e"
+	}
+}
+
 // HTTP GET call
 private apiGet(apiPath, apiQuery = [], callback = {}) {	
 	// set up query
@@ -737,34 +456,9 @@ def getDeviceLastActivity(child) {
 
 // Send command to start or stop
 def sendCommand(child, attributeName, attributeValue) {
-	state.lastCommandSent = now()
-    if (login()) {
+	if (login()) {	    	
 		//Send command
-		apiPut("/api/v4/deviceattribute/putdeviceattribute", [ MyQDeviceId: getChildDeviceID(child), AttributeName: attributeName, AttributeValue: attributeValue ]) 
-        
-        if ((attributeName == "desireddoorstate") && (attributeValue == 0)) {		// if we are closing, check if we have an Acceleration sensor, if so, "waiting" until it moves
-            def firstDoor = doors[0]
-    		if (doors instanceof String) firstDoor = doors
-        	def doorDNI = child.device.deviceNetworkId
-        	switch (doorDNI) {
-        		case firstDoor:
-                	if (door1Sensor){if (door1Acceleration) child.updateDeviceStatus("waiting") else child.updateDeviceStatus("closing")}
-                	break
-            	case doors[1]:
-            		if (door2Sensor){if (door2Acceleration) child.updateDeviceStatus("waiting") else child.updateDeviceStatus("closing")}
-                	break
-            	case doors[2]:
-            		if (door3Sensor){if (door3Acceleration) child.updateDeviceStatus("waiting") else child.updateDeviceStatus("closing")}
-                	break
-            	case doors[3]:
-            		if (door4Sensor){if (door4Acceleration) child.updateDeviceStatus("waiting") else child.updateDeviceStatus("closing")}
-        			break
-            }
-        }      
+		apiPut("/api/v4/deviceattribute/putdeviceattribute", [ MyQDeviceId: getChildDeviceID(child), AttributeName: attributeName, AttributeValue: attributeValue ]) 	
 		return true
 	} 
-}
-
-def notify(message){
-	sendNotificationEvent(message)
 }
